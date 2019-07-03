@@ -1,18 +1,14 @@
 package com.test;
 
-import org.springframework.ldap.core.AttributesMapper;
-import org.springframework.ldap.filter.AndFilter;
-import org.springframework.ldap.filter.LikeFilter;
-
 import javax.naming.Context;
-import javax.naming.NamingException;
-import javax.naming.directory.Attribute;
-import javax.naming.directory.Attributes;
+import javax.naming.NamingEnumeration;
+import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
 import javax.naming.directory.SearchControls;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import javax.naming.directory.SearchResult;
+import java.util.Hashtable;
+import java.util.Properties;
+import java.util.Random;
 
 /**
  * @author: YANLL
@@ -24,7 +20,7 @@ public class LDAPTest {
 
     public static void main(String[] args) throws Exception {
         LDAPTest ldapTest = new LDAPTest();
-        ldapTest.检索();
+        ldapTest.原始();
     }
 
 
@@ -35,9 +31,6 @@ public class LDAPTest {
                 Properties props = new Properties();
                 props.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
                 props.put(Context.SECURITY_AUTHENTICATION, "simple");
-                props.put(Context.SECURITY_CREDENTIALS, "");
-                props.put(Context.SECURITY_PRINCIPAL, "");
-                props.put(Context.PROVIDER_URL, "");
                 InitialDirContext initialDirContext = null;
                 try {
                     initialDirContext = new InitialDirContext(props);
@@ -58,51 +51,31 @@ public class LDAPTest {
     }
 
 
-    private void 检索() {
+    public void 原始() throws Exception {
+        SearchControls ctls = new SearchControls();
+        ctls.setSearchScope(SearchControls.SUBTREE_SCOPE);
+        String returnedAtts[] = {"sAMAccountName", "mail", "pwdLastSet", "msDS-UserPasswordExpiryTimeComputed"};
+        ctls.setReturningAttributes(returnedAtts);
+        String filter = "(sAMAccountName=*)";
+        Hashtable<String, String> env = new Hashtable<String, String>();
+        env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
+        env.put(Context.SECURITY_AUTHENTICATION, "simple");
+        env.put(Context.PROVIDER_URL, "");
+        env.put(Context.SECURITY_PRINCIPAL, "");
+        env.put(Context.SECURITY_CREDENTIALS, "");
+
+        DirContext ctx = new InitialDirContext(env);
+
+        NamingEnumeration e = ctx.search("DC=yeepay,DC=com", filter, ctls);
+        int i = 0;
         try {
+            while (e.hasMore()) {
+                SearchResult entry = (SearchResult) e.next();
 
-            DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss SSS");
-            org.springframework.ldap.core.support.LdapContextSource contextSource = new org.springframework.ldap.core.support.LdapContextSource();
-            contextSource.setCacheEnvironmentProperties(true);
-            contextSource.setUrl("ldap://ldap.yeepay.com:389");
-            contextSource.setUserDn("portal@yeepay.com");
-            contextSource.setPassword("kJ3#si7FQ");
-            contextSource.setReferral("follow");
-            contextSource.afterPropertiesSet();
-            org.springframework.ldap.core.LdapTemplate ldapTemplate = new org.springframework.ldap.core.LdapTemplate();
-            ldapTemplate.setContextSource(contextSource);
-
-
-            SearchControls s = new SearchControls();
-            s.setSearchScope(SearchControls.SUBTREE_SCOPE);
-            String returnedAtts[] = {"sAMAccountName", "mail", "pwdLastSet", "msDS-UserPasswordExpiryTimeComputed"};
-            s.setReturningAttributes(returnedAtts);
-
-
-            AndFilter f = new AndFilter();
-            f.and(new LikeFilter("sAMAccountName", "*"));
-
-            List<Map<String, String>> list = ldapTemplate.search("DC=yeepay,DC=com", f.toString(), s, new AttributesMapper() {
-                @Override
-                public Object mapFromAttributes(Attributes attributes) throws NamingException {
-                    Map<String, String> map = new HashMap<>();
-                    Attribute mail = attributes.get("mail");
-                    if (mail == null) return null;
-                    Attribute sAMAccountName = attributes.get("sAMAccountName");
-                    Attribute pwdLastSet = attributes.get("pwdLastSet");
-                    Attribute userPasswordExpiryTimeComputed = attributes.get("msDS-UserPasswordExpiryTimeComputed");
-                    map.put("sAMAccountName", sAMAccountName != null ? sAMAccountName.get().toString() : "");
-                    map.put("email", mail != null ? mail.get().toString() : "");
-                    map.put("pwdLastSet", pwdLastSet != null ? pwdLastSet.get().toString() : "");
-                    map.put("userPasswordExpiryTimeComputed", userPasswordExpiryTimeComputed != null ? userPasswordExpiryTimeComputed.get().toString() : "");
-                    System.out.println(map);
-                    return map;
-                }
-            });
-
-
-        } catch (Exception e) {
-            e.printStackTrace();
+                i++;
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
     }
 }
