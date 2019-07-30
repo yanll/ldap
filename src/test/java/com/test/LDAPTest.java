@@ -66,7 +66,7 @@ public class LDAPTest {
 
         DirContext ctx = new InitialDirContext(env);
 
-        NamingEnumeration e = ctx.search("DC=yeepay,DC=com", filter, ctls);
+        NamingEnumeration e = ctx.search("DC=,DC=com", filter, ctls);
         int i = 0;
         try {
             while (e.hasMore()) {
